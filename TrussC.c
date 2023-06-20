@@ -126,24 +126,32 @@ force axial_to_force(int fP,element Elem)
 int main()
 {
     int i,j,nn=3,ne=3,nf=1,ns=2,Nnode=0,Nelem=0,cont=0,fw=0,fP[nf];
-    node nodevet[nn];
-    element elemvet[ne];
-    force forcevet[nf];
     force axialvet[1];
-    support sprtvet[ns];
     float SumX=0,SumY=0,F[ne];
+    printf("Quantos nos: ");
+    scanf("%d",&nn);
+    node nodevet[nn];
     for(i=0;i<nn;i++)
         {
             nodevet[i]=create_node(Nnode);
             Nnode++;
         }
+    printf("Quantos elementos: ");
+    scanf("%d",&ne);
+    element elemvet[ne];
         for(i=0;i<ne;i++)
         {
             elemvet[i]=create_element(Nelem,nodevet);
             Nelem++;
         }
+    printf("Quantas forças: ");
+    scanf("%d",&nf);
+    force forcevet[nf];
     for(i=0;i<nf;i++)
         forcevet[i]=create_force();
+    printf("Quantos apoios: ");
+    scanf("%d",&ns);
+    support sprtvet[ns];
     for(i=0;i<ns;i++)
         sprtvet[i]=create_support(nodevet);
 ///Funcao para Calcular as Forca dos Apoios
@@ -154,15 +162,23 @@ int main()
         {
             for(i=0;i<nf;i++)
             {
-                SumY=SumY+forcevet[i].fx*(nodevet[forcevet[i].P.alias].y-nodevet[sprtvet[cont].P.alias].y);
-                SumY=SumY+forcevet[i].fy*(nodevet[forcevet[i].P.alias].x-nodevet[sprtvet[cont].P.alias].x);
+                if(nodevet[forcevet[i].P.alias].y-nodevet[sprtvet[cont].P.alias].y>0)
+                    SumY=SumY+forcevet[i].fx*(nodevet[forcevet[i].P.alias].y-nodevet[sprtvet[cont].P.alias].y);
+                else
+                    SumY=SumY-forcevet[i].fx*(nodevet[forcevet[i].P.alias].y-nodevet[sprtvet[cont].P.alias].y);
+                if(nodevet[forcevet[i].P.alias].x-nodevet[sprtvet[cont].P.alias].x>0)
+                    SumY=SumY+forcevet[i].fy*(nodevet[forcevet[i].P.alias].x-nodevet[sprtvet[cont].P.alias].x);
+                else
+                    SumY=SumY-forcevet[i].fy*(nodevet[forcevet[i].P.alias].x-nodevet[sprtvet[cont].P.alias].x);
             }
             for(j=0;j<ns;j++)
             {
                 if(sprtvet[j].P.alias!=sprtvet[cont].P.alias)
                 {
-                    if(sprtvet[j].fy<=0.00001||sprtvet[j].fy>=-0.00001)
+                    if((nodevet[sprtvet[j].P.alias].x-nodevet[sprtvet[cont].P.alias].x)<=0.00001||(nodevet[sprtvet[j].P.alias].x-nodevet[sprtvet[cont].P.alias].x)>=-0.00001)
                         sprtvet[j].fy=SumY/(nodevet[sprtvet[j].P.alias].x-nodevet[sprtvet[cont].P.alias].x);
+                    else
+                        sprtvet[j].fy=0;
                 }
             }
         }
@@ -178,6 +194,7 @@ int main()
             {
                 if(sprtvet[i].P.alias!=sprtvet[cont].P.alias)
                 {
+                    if(sprtvet[i].fy<=0.00001&&sprtvet[i].fy>=-0.00001)
                     sprtvet[i].fy=SumY-sprtvet[cont].fy;
                 }
             }
@@ -236,42 +253,39 @@ int main()
     }
     for(i=0;i<ns;i++)
     {
-        printf("\nReacoes dos Apoios: tipo:%c, fx:%f, fy:%f",sprtvet[i].type,sprtvet[i].fx,sprtvet[i].fy);
+        printf("\nReacoes do Apoio %d: tipo:%c, fx:%f, fy:%f",i,sprtvet[i].type,sprtvet[i].fx,sprtvet[i].fy);
     }
     cont=0;
     while(cont!=ne)
     {
         for(i=0;i<nf;i++)
         {
-//            printf("%d: %d, %d, %d\n",cont,forcevet[i].P.alias,elemvet[cont].P1.alias,elemvet[cont].P2.alias);
-            if((forcevet[i].P.alias==elemvet[cont].P1.alias || forcevet[i].P.alias==elemvet[cont].P2.alias))
+            if((sprtvet[i].P.alias==elemvet[cont].P1.alias || sprtvet[i].P.alias==elemvet[cont].P2.alias))
             {
-                SumX=SumX+forcevet[i].fx;
-                SumY=SumY+forcevet[i].fy;
+                SumX=SumX+sprtvet[i].fx;
+                SumY=SumY+sprtvet[i].fy;
                 if(elemvet[cont].theta>=PI/2+0.00001||elemvet[cont].theta<=PI/2-0.00001)
                 {
-                    SumX=SumX;///cos(elemvet[cont].theta);
-                    printf("\nSumX= %f, %d, %f",SumX,cont,elemvet[cont].theta);
+                    SumX=SumX*cos(elemvet[cont].theta);
+//                    printf("\nSumX= %f, %d, %f",SumX,cont,elemvet[cont].theta);
                 }
                 else
                     SumX=0;
                 if(elemvet[cont].theta>=0.00001||elemvet[cont].theta<=-0.00001)
                 {
-                    SumY=SumY;///sin(elemvet[cont].theta);
-                    printf("\nSumY= %f, %d, %f",SumY,cont,elemvet[cont].theta);
+                    SumY=SumY*sin(elemvet[cont].theta);
+//                    printf("\nSumY= %f, %d, %f",SumY,cont,elemvet[cont].theta);
                 }
                 else
                     SumY=0;
+            F[cont]=sqrt(SumX*SumX+SumY*SumY);
             }
-//            if(forcevet[i].theta>=0)
-//                forcevet[cont].theta=-forcevet[cont].theta;
-            F[cont]=sqrt(SumX*SumX+SumY*SumY)/cos(-elemvet[cont].theta+forcevet[i].theta);
             SumX=0;
             SumY=0;
 //            printf("%f",F[cont]);
-            if(forcevet[i].P.alias==elemvet[cont].P1.alias)
+            if(sprtvet[i].P.alias==elemvet[cont].P1.alias)
                 fP[i]=elemvet[cont].P2.alias;
-            else if(forcevet[i].P.alias==elemvet[cont].P2.alias)
+            else if(sprtvet[i].P.alias==elemvet[cont].P2.alias)
                 fP[i]=elemvet[cont].P1.alias;
         }
         elemvet[cont].F=F[cont];///sqrt(SumX*SumX+SumY*SumY);
@@ -295,20 +309,14 @@ int main()
         }
         for(i=0;i<nf;i++)
         {
-//            if(elemvet[cont].theta<=0.00001||elemvet[cont].theta>=0.00001)
-//                axialvet[cont].fy=0;
-//            else if((elemvet[cont].theta<=PI/2+0.0001)&&(elemvet[cont].theta>=PI/2-0.0001))
-//            {
-//                axialvet[cont].fx=0;
-//            }
             if(elemvet[cont].F<=0.00001&&elemvet[cont].F>=-0.00001)
-                    elemvet[cont].F=sqrt(pow(axialvet[i].fx,2)+pow(axialvet[i].fy,2))*cos(elemvet[cont].theta-axialvet[i].theta);
+                elemvet[cont].F=sqrt(pow(axialvet[i].fx,2)+pow(axialvet[i].fy,2))/cos(elemvet[cont].theta-axialvet[i].theta);
         }
         cont++;
     }
     for(i=0;i<ne;i++)
     {
-        if(elemvet[i].theta>=0)
+        if(elemvet[i].F>=0)
             elemvet[i].type='T';
         else
             elemvet[i].type='C';
